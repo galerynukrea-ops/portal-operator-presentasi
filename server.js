@@ -232,6 +232,22 @@ app.get('/api/media-files', (req, res) => {
   });
 });
 
+// API: Open Local Media Folder in Windows Explorer
+app.post('/api/open-media-folder', (req, res) => {
+  if (process.env.VERCEL) {
+    return res.status(400).json({ success: false, error: 'Fitur buka folder lokal hanya berlaku saat menjalankan server di laptop.' });
+  }
+  const { type } = req.body;
+  const targetDir = type === 'audio' ? AUDIO_DIR : VIDEOS_DIR;
+  try {
+    const { exec } = require('child_process');
+    exec(`explorer.exe "${targetDir}"`);
+    res.json({ success: true, path: targetDir });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // API: Upload Media File (Base64)
 app.post('/api/upload-media', (req, res) => {
   const { filename, base64Data, type, role } = req.body;

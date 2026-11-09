@@ -303,8 +303,17 @@
         <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-4">
           <div class="flex items-center justify-between">
             <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Video Looping Panggung (.mp4)</h4>
-            <span class="text-[10px] text-indigo-400 font-semibold">Upload langsung atau isi link</span>
+            <span class="text-[10px] text-indigo-400 font-semibold">Offline / Lokal</span>
           </div>
+
+          <!-- Tombol 1-Klik Buka Folder di Windows Explorer (Bebas Crash / Unlimited Size) -->
+          <button onclick="openLocalFolder('videos')" class="w-full py-3 px-4 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-md">
+            <i class="fa-solid fa-folder-open text-amber-400"></i>
+            <span>📂 Buka Folder Video di Komputer Windows (1-Klik)</span>
+          </button>
+          <p class="text-[10.5px] text-slate-400 leading-relaxed text-center">
+            *Untuk video berukuran besar (> 25 MB), salin langsung file Anda ke folder di atas dengan nama <code class="text-indigo-300 font-mono font-bold">tamu.mp4</code> atau <code class="text-emerald-300 font-mono font-bold">banner.mp4</code> agar browser tidak kehabisan memori.
+          </p>
 
           <!-- Video Sambut Tamu -->
           <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 space-y-2">
@@ -315,7 +324,7 @@
             <div class="flex items-center gap-2">
               <input type="text" id="inputWelcomeVideo" class="flex-1 px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white font-mono" placeholder="/media/videos/tamu.mp4 atau URL video">
               <label class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs cursor-pointer transition shrink-0 flex items-center gap-1.5 shadow-md">
-                <i class="fa-solid fa-upload"></i> Upload .mp4
+                <i class="fa-solid fa-upload"></i> Upload File
                 <input type="file" accept="video/mp4,video/webm" class="hidden" onchange="handleFileUpload(this, 'welcome')">
               </label>
             </div>
@@ -330,7 +339,7 @@
             <div class="flex items-center gap-2">
               <input type="text" id="inputBannerVideo" class="flex-1 px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white font-mono" placeholder="/media/videos/banner.mp4 atau URL video">
               <label class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer transition shrink-0 flex items-center gap-1.5 shadow-md">
-                <i class="fa-solid fa-upload"></i> Upload .mp4
+                <i class="fa-solid fa-upload"></i> Upload File
                 <input type="file" accept="video/mp4,video/webm" class="hidden" onchange="handleFileUpload(this, 'banner')">
               </label>
             </div>
@@ -398,9 +407,35 @@
       await saveAllMediaConfig();
     }
 
+    // Open Local Media Folder in Windows Explorer (1-Click)
+    async function openLocalFolder(type = 'videos') {
+      try {
+        const res = await fetch('/api/open-media-folder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type })
+        });
+        const data = await res.json();
+        if (!data.success) {
+          alert('Buka folder lokal via browser hanya bisa di laptop (localhost). Jika menggunakan link online, buka file "buka-folder-media.bat" di laptop Anda.');
+        }
+      } catch (err) {
+        alert('Klik dua kali file "buka-folder-media.bat" di folder Operator Presentasi untuk membuka folder.');
+      }
+    }
+
     async function handleFileUpload(inputEl, role) {
       const file = inputEl.files[0];
       if (!file) return;
+
+      // Chrome Memory Guard: Prevent Out of Memory on large video uploads
+      const maxMb = 20;
+      if (file.size > maxMb * 1024 * 1024) {
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+        alert(`File video ini berukuran besar (${sizeMb} MB).\n\nUntuk mencegah browser crash (Out of Memory), silakan gunakan tombol kuning "📂 Buka Folder Video di Komputer Windows", lalu langsung salin/paste file Anda ke folder tersebut dan beri nama:\n\n• tamu.mp4 (untuk video pra-acara)\n• banner.mp4 (untuk video backdrop acara)`);
+        inputEl.value = '';
+        return;
+      }
 
       const type = role === 'audio' ? 'audio' : 'video';
       const msgEl = role === 'welcome' ? document.getElementById('welcomeUploadMsg') :
