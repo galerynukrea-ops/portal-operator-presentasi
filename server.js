@@ -20,34 +20,15 @@ const PORT = process.env.PORT || 3333;
 const DATA_DIR = process.env.VERCEL ? path.join(os.tmpdir(), 'data') : path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'presentations.json');
 
-// Ensure media and data directories exist
-const MEDIA_DIR = path.join(__dirname, 'public', 'media');
-const VIDEOS_DIR = path.join(MEDIA_DIR, 'videos');
-const AUDIO_DIR = path.join(MEDIA_DIR, 'audio');
-
-[DATA_DIR, MEDIA_DIR, VIDEOS_DIR, AUDIO_DIR].forEach(dir => {
-  if (!fs.existsSync(dir)) {
-    try { fs.mkdirSync(dir, { recursive: true }); } catch (e) {}
-  }
-});
+// Ensure data directory and file exist
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
 
 let db = {
   presentations: [],
   activeId: null,
-  isStandby: false,
-  scene: 'welcome', // 'welcome' | 'banner' | 'presentation' | 'standby'
-  bannerTitle: 'SEMINAR & PRESENTASI 2026',
-  bannerSubtitle: 'Selamat Datang Peserta & Tamu Undangan',
-  bgm: {
-    isPlaying: false,
-    volume: 75,
-    autoDuck: true,
-    currentTrackIndex: 0
-  },
-  videos: {
-    welcome: '/media/videos/tamu.mp4',
-    banner: '/media/videos/banner.mp4'
-  }
+  isStandby: true
 };
 
 function loadDatabase() {
@@ -58,12 +39,7 @@ function loadDatabase() {
       db = {
         presentations: parsed.presentations || [],
         activeId: parsed.activeId || null,
-        isStandby: parsed.isStandby !== undefined ? parsed.isStandby : false,
-        scene: parsed.scene || 'welcome',
-        bannerTitle: parsed.bannerTitle || 'SEMINAR & PRESENTASI 2026',
-        bannerSubtitle: parsed.bannerSubtitle || 'Selamat Datang Peserta & Tamu Undangan',
-        bgm: parsed.bgm || { isPlaying: false, volume: 75, autoDuck: true, currentTrackIndex: 0 },
-        videos: parsed.videos || { welcome: '/media/videos/tamu.mp4', banner: '/media/videos/banner.mp4' }
+        isStandby: parsed.isStandby !== undefined ? parsed.isStandby : true
       };
     } else {
       saveDatabase();
@@ -83,10 +59,10 @@ function saveDatabase() {
 
 loadDatabase();
 
-// Middleware (allow large payloads for media uploads up to 100mb)
+// Middleware
 app.use(cors());
-app.use(express.json({ limit: '100mb' }));
-app.use(express.urlencoded({ extended: true, limit: '100mb' }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Helper to get local network IPv4 address
@@ -211,168 +187,22 @@ app.get('/api/network-info', async (req, res) => {
   }
 });
 
-// API: List Offline Media Files (Videos & Audio)
-app.get('/api/media-files', (req, res) => {
-  const listFiles = (dir, validExts) => {
-    try {
-      if (!fs.existsSync(dir)) return [];
-      return fs.readdirSync(dir).filter(f => validExts.includes(path.extname(f).toLowerCase()));
-    } catch (e) {
-      return [];
-    }
-  };
-
-  const videos = listFiles(VIDEOS_DIR, ['.mp4', '.webm', '.mov', '.ogg']);
-  const audios = listFiles(AUDIO_DIR, ['.mp3', '.wav', '.ogg', '.m4a', '.aac']);
-
-  res.json({
-    success: true,
-    videos: videos.map(v => ({ name: v, url: `/media/videos/${v}` })),
-    audios: audios.map(a => ({ name: a, url: `/media/audio/${a}` }))
-  });
-});
-
-// API: Open Local Media Folder in Windows Explorer
-app.post('/api/open-media-folder', (req, res) => {
-  if (process.env.VERCEL) {
-    return res.status(400).json({ success: false, error: 'Fitur buka folder lokal hanya berlaku saat menjalankan server di laptop.' });
-  }
-  const { type } = req.body;
-  const targetDir = type === 'audio' ? AUDIO_DIR : VIDEOS_DIR;
-  try {
-    const { exec } = require('child_process');
-    exec(`explorer.exe "${targetDir}"`);
-    res.json({ success: true, path: targetDir });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// API: Upload Media File (Base64)
-app.post('/api/upload-media', (req, res) => {
-  const { filename, base64Data, type, role } = req.body;
-
-  if (!filename || !base64Data || !type) {
-    return res.status(400).json({ success: false, error: 'Parameter upload tidak lengkap.' });
-  }
-
-  const targetDir = type === 'video' ? VIDEOS_DIR : AUDIO_DIR;
-  const safeFilename = path.basename(filename).replace(/[^a-zA-Z0-9_.-]/g, '_');
-  const filePath = path.join(targetDir, safeFilename);
-
-  try {
-    const base64Clean = base64Data.replace(/^data:[^;]+;base64,/, '');
-    fs.writeFileSync(filePath, Buffer.from(base64Clean, 'base64'));
-
-    const fileUrl = `/media/${type === 'video' ? 'videos' : 'audio'}/${safeFilename}`;
-
-    // Auto-bind to welcome or banner video if role specified
-    if (role === 'welcome') {
-      db.videos.welcome = fileUrl;
-    } else if (role === 'banner') {
-      db.videos.banner = fileUrl;
-    }
-
-    saveDatabase();
-    broadcastState();
-
-    res.json({ success: true, url: fileUrl, filename: safeFilename });
-  } catch (err) {
-    res.status(500).json({ success: false, error: 'Gagal menyimpan file: ' + err.message });
-  }
-});
-
-// API: Stage Scene Control
-app.post('/api/stage/scene', (req, res) => {
-  const { scene, presenterId, bannerTitle, bannerSubtitle } = req.body;
-
-  if (!['welcome', 'banner', 'presentation', 'standby'].includes(scene)) {
-    return res.status(400).json({ success: false, error: 'Scene tidak valid.' });
-  }
-
-  db.scene = scene;
-
-  if (bannerTitle !== undefined) db.bannerTitle = bannerTitle.trim();
-  if (bannerSubtitle !== undefined) db.bannerSubtitle = bannerSubtitle.trim();
-
-  if (scene === 'presentation') {
-    db.isStandby = false;
-    if (presenterId) {
-      db.activeId = presenterId;
-      db.presentations.forEach(p => {
-        if (p.id === presenterId) p.status = 'active';
-        else if (p.status === 'active') p.status = 'completed';
-      });
-    }
-  } else if (scene === 'standby') {
-    db.isStandby = true;
-  } else {
-    // welcome or banner scene
-    db.isStandby = false;
-  }
-
-  saveDatabase();
-  broadcastState();
-
-  res.json({ success: true, state: getStatePayload() });
-});
-
-// API: BGM Player Control
-app.post('/api/stage/bgm', (req, res) => {
-  const { isPlaying, volume, autoDuck, currentTrackIndex } = req.body;
-
-  if (isPlaying !== undefined) db.bgm.isPlaying = Boolean(isPlaying);
-  if (volume !== undefined) db.bgm.volume = Math.max(0, Math.min(100, Number(volume)));
-  if (autoDuck !== undefined) db.bgm.autoDuck = Boolean(autoDuck);
-  if (currentTrackIndex !== undefined) db.bgm.currentTrackIndex = Number(currentTrackIndex);
-
-  saveDatabase();
-  broadcastState();
-
-  res.json({ success: true, bgm: db.bgm });
-});
-
-// API: Stage Config (Custom Videos & Titles)
-app.post('/api/stage/config', (req, res) => {
-  const { bannerTitle, bannerSubtitle, welcomeVideo, bannerVideo } = req.body;
-
-  if (bannerTitle !== undefined) db.bannerTitle = bannerTitle.trim();
-  if (bannerSubtitle !== undefined) db.bannerSubtitle = bannerSubtitle.trim();
-  if (welcomeVideo !== undefined) db.videos.welcome = welcomeVideo;
-  if (bannerVideo !== undefined) db.videos.banner = bannerVideo;
-
-  saveDatabase();
-  broadcastState();
-
-  res.json({ success: true, state: getStatePayload() });
-});
-
-// Helper for State Payload
-function getStatePayload() {
+// API: Get State
+app.get('/api/state', (req, res) => {
   const activeItem = db.presentations.find(p => p.id === db.activeId) || null;
   const queueIndex = db.presentations.findIndex(p => p.id === db.activeId);
   const nextItem = queueIndex >= 0 && queueIndex < db.presentations.length - 1
     ? db.presentations[queueIndex + 1]
-    : (!db.activeId ? db.presentations.find(p => p.status === 'queue') || null : null);
+    : null;
 
-  return {
+  res.json({
     presentations: db.presentations,
     activeId: db.activeId,
     activeItem,
     nextItem,
     isStandby: db.isStandby,
-    scene: db.scene || 'welcome',
-    bannerTitle: db.bannerTitle || 'SEMINAR & PRESENTASI 2026',
-    bannerSubtitle: db.bannerSubtitle || 'Selamat Datang Peserta & Tamu Undangan',
-    bgm: db.bgm,
-    videos: db.videos,
     totalCount: db.presentations.length
-  };
-}
-
-// API: Get State
-app.get('/api/state', (req, res) => {
-  res.json(getStatePayload());
+  });
 });
 
 // API: Register Presentation (User Form)
@@ -404,6 +234,7 @@ app.post('/api/presentations', async (req, res) => {
   db.presentations.push(newPresentation);
   saveDatabase();
 
+  // Broadcast to all clients
   broadcastState();
 
   res.status(201).json({
@@ -455,9 +286,10 @@ app.delete('/api/presentations/:id', (req, res) => {
 
   if (db.activeId === id) {
     db.activeId = null;
-    db.scene = 'banner';
+    db.isStandby = true;
   }
 
+  // Recalculate order numbers
   db.presentations.forEach((p, idx) => {
     p.order = idx + 1;
   });
@@ -484,6 +316,7 @@ app.post('/api/presentations/reorder', (req, res) => {
     }
   });
 
+  // Add any items not in orderedIds to the end
   db.presentations.forEach(p => {
     if (!orderedIds.includes(p.id)) {
       p.order = newArray.length + 1;
@@ -502,7 +335,7 @@ app.post('/api/presentations/reorder', (req, res) => {
 app.post('/api/presentations/reset', (req, res) => {
   db.presentations = [];
   db.activeId = null;
-  db.scene = 'welcome';
+  db.isStandby = true;
   saveDatabase();
   broadcastState();
   res.json({ success: true, message: 'Semua antrian telah direset.' });
@@ -517,6 +350,7 @@ app.post('/api/projector/activate', (req, res) => {
     return res.status(404).json({ success: false, error: 'Presentasi tidak ditemukan.' });
   }
 
+  // Update statuses
   db.presentations.forEach(p => {
     if (p.id === id) {
       p.status = 'active';
@@ -526,7 +360,6 @@ app.post('/api/projector/activate', (req, res) => {
   });
 
   db.activeId = id;
-  db.scene = 'presentation';
   db.isStandby = false;
   saveDatabase();
   broadcastState();
@@ -542,6 +375,7 @@ app.post('/api/projector/next', (req, res) => {
 
   let nextItem = null;
   if (!db.activeId) {
+    // If nothing active, pick first queued or first item
     nextItem = db.presentations.find(p => p.status === 'queue') || db.presentations[0];
   } else {
     const currentIndex = db.presentations.findIndex(p => p.id === db.activeId);
@@ -551,16 +385,18 @@ app.post('/api/projector/next', (req, res) => {
   }
 
   if (!nextItem) {
+    // No more presentations, go to standby
     db.presentations.forEach(p => {
       if (p.id === db.activeId) p.status = 'completed';
     });
     db.activeId = null;
-    db.scene = 'banner'; // Return to banner when all finished
+    db.isStandby = true;
     saveDatabase();
     broadcastState();
-    return res.json({ success: true, finished: true, message: 'Semua presentasi selesai. Kembali ke Banner Acara.' });
+    return res.json({ success: true, finished: true, message: 'Semua presentasi selesai.' });
   }
 
+  // Set current to completed, next to active
   db.presentations.forEach(p => {
     if (p.id === nextItem.id) {
       p.status = 'active';
@@ -570,7 +406,6 @@ app.post('/api/projector/next', (req, res) => {
   });
 
   db.activeId = nextItem.id;
-  db.scene = 'presentation';
   db.isStandby = false;
   saveDatabase();
   broadcastState();
@@ -599,7 +434,6 @@ app.post('/api/projector/prev', (req, res) => {
   });
 
   db.activeId = prevItem.id;
-  db.scene = 'presentation';
   db.isStandby = false;
   saveDatabase();
   broadcastState();
@@ -607,14 +441,52 @@ app.post('/api/projector/prev', (req, res) => {
   res.json({ success: true, activeItem: prevItem });
 });
 
+// API: Standby Mode (Projector Waiting Screen)
+app.post('/api/projector/standby', (req, res) => {
+  db.isStandby = true;
+  saveDatabase();
+  broadcastState();
+  res.json({ success: true, isStandby: true });
+});
+
 // Broadcast state to all connected socket clients
 function broadcastState() {
-  io.emit('state_updated', getStatePayload());
+  const activeItem = db.presentations.find(p => p.id === db.activeId) || null;
+  const queueIndex = db.presentations.findIndex(p => p.id === db.activeId);
+  const nextItem = queueIndex >= 0 && queueIndex < db.presentations.length - 1
+    ? db.presentations[queueIndex + 1]
+    : (!db.activeId ? db.presentations.find(p => p.status === 'queue') || null : null);
+
+  const payload = {
+    presentations: db.presentations,
+    activeId: db.activeId,
+    activeItem,
+    nextItem,
+    isStandby: db.isStandby,
+    totalCount: db.presentations.length
+  };
+
+  io.emit('state_updated', payload);
 }
 
 // Socket.io connection handling
 io.on('connection', (socket) => {
-  socket.emit('state_updated', getStatePayload());
+  const clientType = socket.handshake.query.type || 'unknown';
+  // Send current state immediately on connection
+  const activeItem = db.presentations.find(p => p.id === db.activeId) || null;
+  const queueIndex = db.presentations.findIndex(p => p.id === db.activeId);
+  const nextItem = queueIndex >= 0 && queueIndex < db.presentations.length - 1
+    ? db.presentations[queueIndex + 1]
+    : (!db.activeId ? db.presentations.find(p => p.status === 'queue') || null : null);
+
+  socket.emit('state_updated', {
+    presentations: db.presentations,
+    activeId: db.activeId,
+    activeItem,
+    nextItem,
+    isStandby: db.isStandby,
+    totalCount: db.presentations.length
+  });
 
   socket.on('request_state', () => {
     broadcastState();

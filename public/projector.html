@@ -3,548 +3,240 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Layar Proyektor Panggung</title>
+  <title>Layar Proyektor Presentasi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="/socket.io/socket.io.js"></script>
   <style>
-    * {
-      box-sizing: border-box;
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap');
+    body, html {
       margin: 0;
       padding: 0;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-
-    body, html {
       width: 100%;
       height: 100%;
       overflow: hidden;
+      font-family: 'Plus Jakarta Sans', sans-serif;
       background-color: #030712;
       color: #f8fafc;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
-    /* Scene Layers Base */
-    .scene-layer {
+    /* Ambient background glowing circles */
+    .glow-circle-1 {
       position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.8s;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      align-items: center;
-      padding: 32px;
-      overflow: hidden;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, rgba(99, 102, 241, 0) 70%);
+      top: -100px;
+      left: -100px;
+      filter: blur(40px);
+      animation: float1 18s ease-in-out infinite alternate;
+      pointer-events: none;
     }
-
-    .scene-layer.active {
-      opacity: 1;
-      visibility: visible;
-      z-index: 10;
-    }
-
-    /* Background Videos */
-    .bg-video {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      z-index: 1;
-    }
-
-    .video-overlay {
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at center, rgba(15, 23, 42, 0.3) 0%, rgba(3, 7, 18, 0.85) 100%);
-      z-index: 2;
-    }
-
-    /* Ambient Fallback Background when video file is absent */
-    .procedural-backdrop {
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at 20% 30%, #1e1b4b 0%, #0f172a 50%, #020617 100%);
-      z-index: 1;
-    }
-
-    .glow-orb-1 {
+    .glow-circle-2 {
       position: absolute;
       width: 600px;
       height: 600px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, rgba(99, 102, 241, 0) 70%);
-      top: -150px;
-      left: -150px;
-      filter: blur(50px);
-      animation: floatOrb1 16s ease-in-out infinite alternate;
-    }
-
-    .glow-orb-2 {
-      position: absolute;
-      width: 700px;
-      height: 700px;
-      border-radius: 50%;
       background: radial-gradient(circle, rgba(168, 85, 247, 0.2) 0%, rgba(168, 85, 247, 0) 70%);
-      bottom: -200px;
-      right: -200px;
-      filter: blur(60px);
-      animation: floatOrb2 20s ease-in-out infinite alternate;
-    }
-
-    @keyframes floatOrb1 {
-      0% { transform: translate(0, 0) scale(1); }
-      100% { transform: translate(140px, 100px) scale(1.2); }
-    }
-    @keyframes floatOrb2 {
-      0% { transform: translate(0, 0) scale(1); }
-      100% { transform: translate(-120px, -80px) scale(1.15); }
-    }
-
-    /* Content Containers */
-    .layer-content {
-      position: relative;
-      z-index: 5;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
-    /* Header Bar */
-    .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      width: 100%;
-    }
-
-    .brand-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 18px;
-      border-radius: 9999px;
-      background: rgba(15, 23, 42, 0.75);
-      border: 1px solid rgba(99, 102, 241, 0.35);
-      backdrop-filter: blur(12px);
-      color: #c7d2fe;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
-
-    .clock-badge {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 18px;
-      font-weight: 800;
-      color: #ffffff;
-      padding: 8px 18px;
-      border-radius: 14px;
-      background: rgba(15, 23, 42, 0.75);
-      border: 1px solid rgba(51, 65, 85, 0.6);
-      backdrop-filter: blur(12px);
-    }
-
-    /* Banner Center Stage */
-    .stage-center {
-      margin: auto;
-      text-align: center;
-      max-width: 960px;
-      padding: 20px;
-    }
-
-    .stage-pill {
-      display: inline-block;
-      padding: 8px 20px;
-      border-radius: 9999px;
-      background: rgba(99, 102, 241, 0.2);
-      border: 1px solid rgba(99, 102, 241, 0.45);
-      color: #a5b4fc;
-      font-size: 14px;
-      font-weight: 800;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      margin-bottom: 20px;
-      box-shadow: 0 0 25px rgba(99, 102, 241, 0.3);
-    }
-
-    .stage-title {
-      font-size: 58px;
-      font-weight: 900;
-      line-height: 1.15;
-      letter-spacing: -0.02em;
-      background: linear-gradient(135deg, #ffffff 40%, #c7d2fe 75%, #818cf8 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 16px;
-      text-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-    }
-
-    .stage-subtitle {
-      font-size: 22px;
-      color: #94a3b8;
-      font-weight: 500;
-      letter-spacing: 0.02em;
-      max-width: 720px;
-      margin: 0 auto;
-    }
-
-    /* Standby QR Layout */
-    .standby-center {
-      margin: auto;
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      justify-content: center;
-      gap: 48px;
-      max-width: 1000px;
-    }
-
-    .qr-card {
-      background: #ffffff;
-      padding: 20px;
-      border-radius: 28px;
-      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .qr-img {
-      width: 240px;
-      height: 240px;
-      object-fit: contain;
-      border-radius: 12px;
-    }
-
-    .qr-text {
-      color: #0f172a;
-      font-size: 12px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-top: 10px;
-    }
-
-    .standby-info {
-      text-align: left;
-      max-width: 520px;
-    }
-
-    .url-chip {
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(71, 85, 105, 0.8);
-      border-radius: 16px;
-      padding: 16px 22px;
-      margin-top: 16px;
-      display: inline-block;
-    }
-
-    .url-chip p {
-      font-size: 11px;
-      font-weight: 700;
-      color: #94a3b8;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 4px;
-    }
-
-    .url-chip span {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 22px;
-      font-weight: 800;
-      color: #818cf8;
-    }
-
-    /* Presentation Canva Layer */
-    #presentationLayer {
-      padding: 0;
-      background: #000000;
-      z-index: 20;
-    }
-
-    #canvaIframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
-
-    /* Transition Curtain */
-    #transitionCurtain {
-      position: absolute;
-      inset: 0;
-      background: #030712;
-      z-index: 50;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      opacity: 0;
+      bottom: -150px;
+      right: -150px;
+      filter: blur(50px);
+      animation: float2 20s ease-in-out infinite alternate;
       pointer-events: none;
-      transition: opacity 0.5s ease;
+    }
+    @keyframes float1 {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(120px, 80px) scale(1.15); }
+    }
+    @keyframes float2 {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(-100px, -90px) scale(1.2); }
     }
 
-    /* Floating Autohide HUD */
+    /* Transition curtain */
+    #transitionCurtain {
+      transition: opacity 0.4s ease, visibility 0.4s;
+    }
+
+    /* Discreet HUD autohide */
     #projectorHud {
-      position: absolute;
-      top: 18px;
-      left: 24px;
-      right: 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      z-index: 30;
       transition: opacity 0.3s ease, transform 0.3s ease;
     }
-
     .hud-hidden {
       opacity: 0 !important;
       transform: translateY(-20px) !important;
       pointer-events: none;
     }
-
-    .hud-pill {
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(51, 65, 85, 0.8);
-      backdrop-filter: blur(12px);
-      padding: 10px 18px;
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .hud-btn {
-      background: rgba(30, 41, 59, 0.85);
-      border: 1px solid rgba(71, 85, 105, 0.7);
-      color: #e2e8f0;
-      padding: 8px 14px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    /* Floating Focus Hint Toast */
-    #focusHintToast {
-      position: absolute;
-      bottom: 24px;
-      left: 50%;
-      transform: translate(-50%, 20px);
-      background: rgba(15, 23, 42, 0.95);
-      border: 1px solid rgba(99, 102, 241, 0.4);
-      color: #ffffff;
-      padding: 10px 22px;
-      border-radius: 9999px;
-      font-size: 12px;
-      font-weight: 600;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.4s ease, transform 0.4s ease;
-      z-index: 40;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-    }
   </style>
 </head>
-<body>
+<body class="relative flex flex-col justify-center items-center select-none">
 
-  <!-- ============================================== -->
-  <!-- SCENE 1: WELCOMING (Video Loop Tamu Datang)    -->
-  <!-- ============================================== -->
-  <div id="welcomeLayer" class="scene-layer active">
-    <!-- Optional Background Video -->
-    <video id="welcomeVideo" class="bg-video" loop playsinline autoplay muted src="/media/videos/tamu.mp4"></video>
-    <div class="video-overlay"></div>
-    <div class="procedural-backdrop">
-      <div class="glow-orb-1"></div>
-      <div class="glow-orb-2"></div>
-    </div>
+  <!-- ========================================== -->
+  <!-- 1. STANDBY SCREEN (Displayed when idle)    -->
+  <!-- ========================================== -->
+  <div id="standbyScreen" class="absolute inset-0 flex flex-col justify-between p-10 z-10">
+    <div class="glow-circle-1"></div>
+    <div class="glow-circle-2"></div>
 
-    <div class="layer-content">
-      <div class="top-bar">
-        <div class="brand-tag">
-          <span>●</span> Sesi Sambut Tamu Undangan
+    <!-- Top Bar Standby -->
+    <header class="flex justify-between items-center z-20">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-2xl bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-indigo-300 text-xl shadow-lg shadow-indigo-500/20">
+          <i class="fa-solid fa-chalkboard-user"></i>
         </div>
-        <div class="clock-badge live-clock">00:00:00</div>
-      </div>
-
-      <div class="stage-center">
-        <span class="stage-pill">Selamat Datang</span>
-        <h1 class="stage-title">PORTAL PRESENTASI</h1>
-        <p class="stage-subtitle">Silakan menempati tempat duduk yang telah disediakan. Acara akan segera dimulai.</p>
-      </div>
-
-      <div style="text-align: center; color: #64748b; font-size: 12px;">
-        Audio Background Playlist Aktif
-      </div>
-    </div>
-  </div>
-
-  <!-- ============================================== -->
-  <!-- SCENE 2: BANNER ACARA (Backdrop Panggung)      -->
-  <!-- ============================================== -->
-  <div id="bannerLayer" class="scene-layer">
-    <!-- Optional Background Video for Event Banner -->
-    <video id="bannerVideo" class="bg-video" loop playsinline autoplay muted src="/media/videos/banner.mp4"></video>
-    <div class="video-overlay"></div>
-    <div class="procedural-backdrop">
-      <div class="glow-orb-1" style="background: radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, transparent 70%);"></div>
-      <div class="glow-orb-2" style="background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, transparent 70%);"></div>
-    </div>
-
-    <div class="layer-content">
-      <div class="top-bar">
-        <div class="brand-tag" style="border-color: rgba(16, 185, 129, 0.4); color: #6ee7b7;">
-          <span>★</span> Acara Sedang Berlangsung
+        <div>
+          <h1 class="text-2xl font-black tracking-tight uppercase bg-gradient-to-r from-white via-indigo-100 to-indigo-400 bg-clip-text text-transparent">
+            PORTAL PRESENTASI
+          </h1>
+          <p class="text-xs font-semibold text-indigo-400/80 tracking-widest uppercase">Canva Presentation Hub</p>
         </div>
-        <div class="clock-badge live-clock">00:00:00</div>
       </div>
 
-      <div class="stage-center">
-        <span class="stage-pill" style="border-color: rgba(52, 211, 153, 0.4); color: #6ee7b7; background: rgba(16, 185, 129, 0.15);">
-          Panggung Utama
-        </span>
-        <h1 id="bannerTitleDisplay" class="stage-title">SEMINAR & PRESENTASI 2026</h1>
-        <p id="bannerSubtitleDisplay" class="stage-subtitle">Selamat Datang Peserta & Tamu Undangan</p>
-      </div>
-
-      <div style="text-align: center; color: #64748b; font-size: 12px;">
-        Operator Standby • Siap Sesi Presentasi
-      </div>
-    </div>
-  </div>
-
-  <!-- ============================================== -->
-  <!-- SCENE 3: STANDBY & QR CODE                     -->
-  <!-- ============================================== -->
-  <div id="standbyLayer" class="scene-layer">
-    <div class="procedural-backdrop">
-      <div class="glow-orb-1"></div>
-      <div class="glow-orb-2"></div>
-    </div>
-
-    <div class="layer-content">
-      <div class="top-bar">
-        <div class="brand-tag">
-          <span>ℹ</span> Pengumpulan Slide Canva
+      <div class="flex items-center gap-4">
+        <!-- Live Clock -->
+        <div id="liveClock" class="px-5 py-2.5 rounded-2xl bg-slate-900/80 border border-slate-800 text-slate-300 font-mono text-lg font-bold shadow-inner">
+          00:00:00
         </div>
-        <div class="clock-badge live-clock">00:00:00</div>
+        <!-- Fullscreen Button -->
+        <button onclick="toggleFullScreen()" class="w-11 h-11 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer">
+          <i class="fa-solid fa-expand text-base" id="standbyFsIcon"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Center QR Code & Instruction -->
+    <main class="flex flex-col lg:flex-row items-center justify-center gap-12 my-auto z-20">
+      <!-- QR Box -->
+      <div class="bg-white p-5 rounded-3xl shadow-2xl shadow-indigo-950/60 flex flex-col items-center">
+        <img id="qrCodeImage" src="" alt="QR Code Pendaftaran" class="w-56 h-56 md:w-64 md:h-64 object-contain rounded-xl">
+        <div class="mt-3 text-center">
+          <span class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-900 uppercase tracking-wide">
+            <i class="fa-solid fa-camera"></i> Scan untuk Kirim Link Canva
+          </span>
+        </div>
       </div>
 
-      <div class="standby-center">
-        <div class="qr-card">
-          <img id="qrCodeImage" class="qr-img" src="" alt="QR Pendaftaran">
-          <span class="qr-text">Scan untuk Submit Slide</span>
+      <!-- Text / URL info -->
+      <div class="max-w-lg text-center lg:text-left space-y-4">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-bold uppercase tracking-wider">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Sesi Presentasi Siap Dimulai
         </div>
 
-        <div class="standby-info">
-          <h2 style="font-size: 38px; font-weight: 800; line-height: 1.2; margin-bottom: 12px;">
-            Kumpulkan Slide Canva Anda
-          </h2>
-          <p style="color: #94a3b8; font-size: 15px; line-height: 1.5;">
-            Scan QR code di samping atau buka tautan di bawah melalui browser HP/laptop Anda:
-          </p>
+        <h2 class="text-4xl md:text-5xl font-black text-white leading-tight">
+          Silakan Kumpulkan Slide Anda
+        </h2>
 
-          <div class="url-chip">
-            <p>Alamat Akses:</p>
-            <span id="displayUrl">Loading...</span>
+        <p class="text-slate-400 text-base leading-relaxed">
+          Hubungkan perangkat Anda ke Wi-Fi yang sama, scan QR code di samping atau buka tautan di bawah melalui browser:
+        </p>
+
+        <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 inline-block text-left shadow-lg">
+          <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Akses URL Browser:</p>
+          <span id="displayUrl" class="text-xl md:text-2xl font-mono font-extrabold text-indigo-400 tracking-wide select-all">
+            http://localhost:3000
+          </span>
+        </div>
+      </div>
+    </main>
+
+    <!-- Bottom Next Presenter Banner -->
+    <footer class="z-20">
+      <div id="nextPresenterBanner" class="max-w-2xl mx-auto bg-slate-900/90 backdrop-blur-xl border border-indigo-500/30 rounded-2xl p-4 flex items-center justify-between shadow-2xl">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
+            <i class="fa-solid fa-user-clock text-lg"></i>
+          </div>
+          <div>
+            <p class="text-[11px] font-bold text-amber-400 uppercase tracking-wider">Presentasi Pertama / Selanjutnya:</p>
+            <p id="nextPresenterText" class="text-base font-bold text-white">Menunggu peserta mendaftar...</p>
           </div>
         </div>
+        <span class="text-xs font-medium text-slate-400 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700">
+          Operator Siap
+        </span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 2. ACTIVE PRESENTATION SCREEN (Canva Embed)-->
+  <!-- ========================================== -->
+  <div id="presentationScreen" class="absolute inset-0 w-full h-full hidden z-20 bg-black">
+    <!-- Canva Iframe Container -->
+    <iframe id="canvaIframe"
+      src="about:blank"
+      class="w-full h-full border-0"
+      allow="fullscreen; autoplay; clipboard-write"
+      allowfullscreen="true">
+    </iframe>
+
+    <!-- Floating Discreet HUD Bar (auto-hides) -->
+    <div id="projectorHud" class="absolute top-4 left-6 right-6 flex items-center justify-between z-30 pointer-events-auto">
+      <!-- Presenter Pill -->
+      <div class="flex items-center gap-3 bg-slate-900/90 backdrop-blur-xl border border-slate-700/80 px-4 py-2.5 rounded-2xl shadow-2xl">
+        <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
+        <div>
+          <span class="text-[10px] font-extrabold text-indigo-300 uppercase tracking-wider block">Sedang Presentasi:</span>
+          <span id="hudPresenterName" class="text-sm font-bold text-white leading-tight">Nama Peserta</span>
+        </div>
       </div>
 
-      <div style="width: 100%; max-width: 650px; margin: 0 auto; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(51, 65, 85, 0.7); border-radius: 16px; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;">
-        <div>
-          <span style="font-size: 10px; font-weight: 700; color: #f59e0b; text-transform: uppercase;">Pembicara Selanjutnya:</span>
-          <p id="nextPresenterText" style="font-size: 14px; font-weight: 700; color: #ffffff;">Menunggu antrian...</p>
-        </div>
-        <span style="font-size: 11px; color: #94a3b8; background: #1e293b; padding: 4px 10px; border-radius: 8px;">Siap Tampil</span>
+      <!-- Controls Right -->
+      <div class="flex items-center gap-2 bg-slate-900/90 backdrop-blur-xl border border-slate-700/80 p-1.5 rounded-2xl shadow-2xl">
+        <button onclick="focusSlideIframe()" class="px-3 py-2 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 text-xs font-semibold flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-crosshairs text-indigo-400"></i> Fokus Slide (Spasi)
+        </button>
+        <button id="hudDirectLinkBtn" onclick="openActiveDirectly()" title="Buka di Tab Baru (Jika ada kendala embed Canva)"
+          class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-arrow-up-right-from-square text-indigo-400"></i> Buka Langsung
+        </button>
+        <button onclick="toggleFullScreen()" title="Toggle Layar Penuh (F11)"
+          class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white flex items-center justify-center transition">
+          <i class="fa-solid fa-expand text-xs"></i>
+        </button>
       </div>
+    </div>
+
+    <!-- Floating Focus Helper Toast -->
+    <div id="focusHintToast" class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur-md border border-indigo-500/40 text-white px-5 py-2.5 rounded-full text-xs font-semibold shadow-2xl flex items-center gap-2.5 pointer-events-none transition-all duration-500 z-30">
+      <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+      <span>💡 <strong>Klik 1x pada slide</strong> agar tombol <strong>Spasi / Panah (← →) / Remote Clicker</strong> aktif!</span>
     </div>
   </div>
 
-  <!-- ============================================== -->
-  <!-- SCENE 4: CANVA LIVE PRESENTATION               -->
-  <!-- ============================================== -->
-  <div id="presentationLayer" class="scene-layer">
-    <iframe id="canvaIframe" src="about:blank" allow="fullscreen; autoplay; clipboard-write" allowfullscreen="true"></iframe>
-
-    <!-- Floating HUD Bar -->
-    <div id="projectorHud">
-      <div class="hud-pill">
-        <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
-        <div>
-          <span style="font-size: 9px; font-weight: 700; color: #818cf8; text-transform: uppercase; display: block;">Sedang Presentasi:</span>
-          <span id="hudPresenterName" style="font-size: 13px; font-weight: 800; color: #ffffff;">Nama Peserta</span>
-        </div>
-      </div>
-
-      <div style="display: flex; gap: 8px;">
-        <button onclick="focusSlideIframe()" class="hud-btn" style="background: rgba(99, 102, 241, 0.25); color: #c7d2fe;">
-          🎯 Fokus Slide (Spasi)
-        </button>
-        <button onclick="openActiveDirectly()" class="hud-btn">
-          ↗ Buka Langsung
-        </button>
-        <button onclick="toggleFullScreen()" class="hud-btn" style="padding: 8px 12px;">
-          ⛶
-        </button>
-      </div>
+  <!-- ========================================== -->
+  <!-- 3. TRANSITION INTRO CURTAIN                -->
+  <!-- ========================================== -->
+  <div id="transitionCurtain" class="absolute inset-0 bg-slate-950 z-40 flex flex-col items-center justify-center text-center p-8 opacity-0 pointer-events-none">
+    <div class="w-20 h-20 rounded-3xl bg-indigo-600/20 border border-indigo-500/40 text-indigo-400 flex items-center justify-center text-3xl mb-6 shadow-2xl shadow-indigo-500/30 animate-bounce">
+      <i class="fa-solid fa-play"></i>
     </div>
-
-    <!-- Toast Fokus Keyboard -->
-    <div id="focusHintToast">
-      💡 <strong>Klik 1x pada slide</strong> agar tombol <strong>Spasi / Panah (← →) / Clicker</strong> aktif!
-    </div>
-  </div>
-
-  <!-- ============================================== -->
-  <!-- TRANSITION CURTAIN (Intro Nama Pembicara)      -->
-  <!-- ============================================== -->
-  <div id="transitionCurtain">
-    <div style="width: 64px; height: 64px; border-radius: 20px; background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.4); color: #818cf8; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 16px;">
-      ▶
-    </div>
-    <span style="padding: 4px 12px; border-radius: 9999px; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.35); color: #a5b4fc; font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px;">
+    <span class="px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-extrabold uppercase tracking-widest mb-3">
       Mempersiapkan Presentasi
     </span>
-    <h2 id="curtainPresenterName" style="font-size: 48px; font-weight: 900; color: #ffffff; margin-bottom: 8px;">
+    <h2 id="curtainPresenterName" class="text-4xl md:text-6xl font-black text-white mb-3 tracking-tight">
       Nama Pembicara
     </h2>
-    <p id="curtainTopic" style="font-size: 18px; color: #94a3b8; max-width: 600px;">
+    <p id="curtainTopic" class="text-lg md:text-xl text-slate-400 max-w-xl font-medium">
       Judul Topik Presentasi
     </p>
   </div>
-
-  <!-- Audio Element for Offline BGM -->
-  <audio id="bgmAudio" loop preload="auto"></audio>
 
   <script>
     const socket = io({ query: { type: 'projector' } });
     let currentState = null;
     let currentLoadedId = null;
     let hudTimer = null;
-    let bgmFadeInterval = null;
 
     // Clock
     function updateClock() {
       const now = new Date();
       const str = now.toTimeString().split(' ')[0];
-      document.querySelectorAll('.live-clock').forEach(el => el.textContent = str);
+      document.getElementById('liveClock').textContent = str;
     }
     setInterval(updateClock, 1000);
     updateClock();
 
-    // Init Network Info
+    // Fetch initial network info
     async function initNetworkInfo() {
       try {
         const res = await fetch('/api/network-info');
@@ -552,6 +244,7 @@
         if (data.success) {
           const isCloud = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
           const activeUrl = isCloud ? window.location.origin : data.networkUrl;
+
           document.getElementById('qrCodeImage').src = data.qrCodeDataUrl;
           document.getElementById('displayUrl').textContent = activeUrl;
         }
@@ -561,165 +254,55 @@
     }
     initNetworkInfo();
 
-    // Scene Switcher Engine
-    function setScene(sceneName) {
-      const layers = {
-        'welcome': document.getElementById('welcomeLayer'),
-        'banner': document.getElementById('bannerLayer'),
-        'standby': document.getElementById('standbyLayer'),
-        'presentation': document.getElementById('presentationLayer')
-      };
-
-      Object.keys(layers).forEach(k => {
-        if (layers[k]) {
-          if (k === sceneName) {
-            layers[k].classList.add('active');
-          } else {
-            layers[k].classList.remove('active');
-          }
-        }
-      });
-
-      // Play / Pause Videos accordingly
-      const welcomeVideo = document.getElementById('welcomeVideo');
-      const bannerVideo = document.getElementById('bannerVideo');
-
-      if (sceneName === 'welcome') {
-        welcomeVideo?.play().catch(() => {});
-        bannerVideo?.pause();
-      } else if (sceneName === 'banner') {
-        bannerVideo?.play().catch(() => {});
-        welcomeVideo?.pause();
-      } else {
-        welcomeVideo?.pause();
-        bannerVideo?.pause();
-      }
-    }
-
-    // Audio BGM Engine with Smooth Fade In / Fade Out
-    const bgmAudio = document.getElementById('bgmAudio');
-
-    function fadeAudio(targetVolume, durationMs = 1500) {
-      clearInterval(bgmFadeInterval);
-      const stepTime = 50;
-      const steps = durationMs / stepTime;
-      const startVol = bgmAudio.volume;
-      const volDiff = targetVolume - startVol;
-      let currentStep = 0;
-
-      if (targetVolume > 0 && bgmAudio.paused) {
-        bgmAudio.play().catch(() => {});
-      }
-
-      bgmFadeInterval = setInterval(() => {
-        currentStep++;
-        const nextVol = Math.max(0, Math.min(1, startVol + (volDiff * (currentStep / steps))));
-        bgmAudio.volume = nextVol;
-
-        if (currentStep >= steps) {
-          clearInterval(bgmFadeInterval);
-          bgmAudio.volume = targetVolume;
-          if (targetVolume === 0) {
-            bgmAudio.pause();
-          }
-        }
-      }, stepTime);
-    }
-
-    // Handle State Updates from Server
+    // Handle incoming state from server
     socket.on('state_updated', (state) => {
       currentState = state;
       renderState(state);
     });
 
     function renderState(state) {
-      // 1. Update Banner Text & Videos
-      if (state.bannerTitle) {
-        document.getElementById('bannerTitleDisplay').textContent = state.bannerTitle;
-      }
-      if (state.bannerSubtitle) {
-        document.getElementById('bannerSubtitleDisplay').textContent = state.bannerSubtitle;
-      }
+      const standbyScreen = document.getElementById('standbyScreen');
+      const presentationScreen = document.getElementById('presentationScreen');
+      const canvaIframe = document.getElementById('canvaIframe');
 
-      const welcomeVideo = document.getElementById('welcomeVideo');
-      const bannerVideo = document.getElementById('bannerVideo');
-
-      if (state.videos && welcomeVideo && bannerVideo) {
-        if (state.videos.welcome && welcomeVideo.getAttribute('data-active-src') !== state.videos.welcome) {
-          welcomeVideo.setAttribute('data-active-src', state.videos.welcome);
-          welcomeVideo.src = state.videos.welcome;
-          welcomeVideo.load();
-        }
-        if (state.videos.banner && bannerVideo.getAttribute('data-active-src') !== state.videos.banner) {
-          bannerVideo.setAttribute('data-active-src', state.videos.banner);
-          bannerVideo.src = state.videos.banner;
-          bannerVideo.load();
-        }
-      }
-
-      // 2. Update Next Presenter
+      // Update next speaker preview on standby screen
       if (state.nextItem) {
         document.getElementById('nextPresenterText').textContent = `${state.nextItem.name} — "${state.nextItem.topic}"`;
       } else {
         document.getElementById('nextPresenterText').textContent = state.presentations.length > 0
-          ? 'Semua peserta telah selesai'
-          : 'Belum ada peserta yang mendaftar';
+          ? 'Semua peserta telah selesai atau antrian kosong'
+          : 'Belum ada peserta yang mendaftar...';
       }
 
-      // 3. Switch Scene Layer
-      const targetScene = state.scene || (state.isStandby ? 'standby' : (state.activeItem ? 'presentation' : 'welcome'));
-      setScene(targetScene);
+      // Check whether to show Standby or Active presentation
+      if (state.isStandby || !state.activeItem) {
+        // Show Standby
+        standbyScreen.classList.remove('hidden');
+        presentationScreen.classList.add('hidden');
+        canvaIframe.src = 'about:blank';
+        currentLoadedId = null;
+      } else {
+        // Show Active Presentation
+        standbyScreen.classList.add('hidden');
+        presentationScreen.classList.remove('hidden');
 
-      // 4. Handle Presentation Loading
-      const canvaIframe = document.getElementById('canvaIframe');
-      if (targetScene === 'presentation' && state.activeItem) {
         document.getElementById('hudPresenterName').textContent = state.activeItem.name;
+
+        // If newly selected item or URL changed, trigger smooth transition
         if (currentLoadedId !== state.activeItem.id) {
           currentLoadedId = state.activeItem.id;
           triggerPresentationTransition(state.activeItem);
         }
-        // Auto duck BGM
-        if (state.bgm && state.bgm.autoDuck) {
-          fadeAudio(0, 1500);
-        }
-      } else {
-        canvaIframe.src = 'about:blank';
-        currentLoadedId = null;
-
-        // Restore BGM if playing
-        if (state.bgm && state.bgm.isPlaying) {
-          const targetVol = (state.bgm.volume || 75) / 100;
-          fadeAudio(targetVol, 1500);
-        } else {
-          fadeAudio(0, 800);
-        }
       }
     }
 
-    function triggerPresentationTransition(item) {
-      const curtain = document.getElementById('transitionCurtain');
-      const canvaIframe = document.getElementById('canvaIframe');
-
-      document.getElementById('curtainPresenterName').textContent = item.name;
-      document.getElementById('curtainTopic').textContent = item.topic || 'Presentasi';
-
-      curtain.style.opacity = '1';
-      curtain.style.pointerEvents = 'auto';
-
-      canvaIframe.src = item.embedUrl;
-
-      setTimeout(() => {
-        curtain.style.opacity = '0';
-        curtain.style.pointerEvents = 'none';
-        focusSlideIframe();
-      }, 2200);
-    }
-
     function focusSlideIframe() {
-      const iframe = document.getElementById('canvaIframe');
-      if (iframe) {
-        iframe.focus();
-        try { iframe.contentWindow?.focus(); } catch (e) {}
+      const canvaIframe = document.getElementById('canvaIframe');
+      if (canvaIframe) {
+        canvaIframe.focus();
+        try {
+          canvaIframe.contentWindow?.focus();
+        } catch(e) {}
       }
       showFocusToast();
     }
@@ -736,20 +319,44 @@
       }, 5000);
     }
 
+    function triggerPresentationTransition(item) {
+      const curtain = document.getElementById('transitionCurtain');
+      const curtainName = document.getElementById('curtainPresenterName');
+      const curtainTopic = document.getElementById('curtainTopic');
+      const canvaIframe = document.getElementById('canvaIframe');
+
+      curtainName.textContent = item.name;
+      curtainTopic.textContent = item.topic || 'Presentasi Canva';
+
+      // Show curtain
+      curtain.style.opacity = '1';
+      curtain.style.pointerEvents = 'auto';
+
+      // Set iframe embed source
+      canvaIframe.src = item.embedUrl;
+
+      // After 2.2 seconds, smoothly fade out curtain and focus
+      setTimeout(() => {
+        curtain.style.opacity = '0';
+        curtain.style.pointerEvents = 'none';
+        focusSlideIframe();
+      }, 2200);
+    }
+
     function openActiveDirectly() {
       if (currentState && currentState.activeItem) {
         window.open(currentState.activeItem.originalUrl, '_blank');
       }
     }
 
-    // Auto-hide HUD logic
+    // Auto-hiding HUD logic
     function resetHudTimer() {
       const hud = document.getElementById('projectorHud');
       hud.classList.remove('hud-hidden');
       clearTimeout(hudTimer);
       hudTimer = setTimeout(() => {
         hud.classList.add('hud-hidden');
-      }, 3500);
+      }, 3000);
     }
     window.addEventListener('mousemove', resetHudTimer);
     window.addEventListener('click', resetHudTimer);
@@ -758,11 +365,24 @@
     // Fullscreen toggle
     function toggleFullScreen() {
       if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(() => {});
+        document.documentElement.requestFullscreen().catch(err => {
+          console.warn('Error attempting fullscreen:', err.message);
+        });
       } else {
-        if (document.exitFullscreen) document.exitFullscreen();
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
       }
     }
+
+    // Keyboard shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'F11') {
+        // Let browser handle native F11 or intercept
+      } else if (e.key === 'Escape' && document.fullscreenElement) {
+        document.exitFullscreen();
+      }
+    });
   </script>
 </body>
 </html>
