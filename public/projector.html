@@ -633,12 +633,28 @@
     });
 
     function renderState(state) {
-      // 1. Update Banner Text
+      // 1. Update Banner Text & Videos
       if (state.bannerTitle) {
         document.getElementById('bannerTitleDisplay').textContent = state.bannerTitle;
       }
       if (state.bannerSubtitle) {
         document.getElementById('bannerSubtitleDisplay').textContent = state.bannerSubtitle;
+      }
+
+      const welcomeVideo = document.getElementById('welcomeVideo');
+      const bannerVideo = document.getElementById('bannerVideo');
+
+      if (state.videos && welcomeVideo && bannerVideo) {
+        if (state.videos.welcome && welcomeVideo.getAttribute('data-active-src') !== state.videos.welcome) {
+          welcomeVideo.setAttribute('data-active-src', state.videos.welcome);
+          welcomeVideo.src = state.videos.welcome;
+          welcomeVideo.load();
+        }
+        if (state.videos.banner && bannerVideo.getAttribute('data-active-src') !== state.videos.banner) {
+          bannerVideo.setAttribute('data-active-src', state.videos.banner);
+          bannerVideo.src = state.videos.banner;
+          bannerVideo.load();
+        }
       }
 
       // 2. Update Next Presenter

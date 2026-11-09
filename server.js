@@ -234,7 +234,7 @@ app.get('/api/media-files', (req, res) => {
 
 // API: Upload Media File (Base64)
 app.post('/api/upload-media', (req, res) => {
-  const { filename, base64Data, type } = req.body;
+  const { filename, base64Data, type, role } = req.body;
 
   if (!filename || !base64Data || !type) {
     return res.status(400).json({ success: false, error: 'Parameter upload tidak lengkap.' });
@@ -249,6 +249,17 @@ app.post('/api/upload-media', (req, res) => {
     fs.writeFileSync(filePath, Buffer.from(base64Clean, 'base64'));
 
     const fileUrl = `/media/${type === 'video' ? 'videos' : 'audio'}/${safeFilename}`;
+
+    // Auto-bind to welcome or banner video if role specified
+    if (role === 'welcome') {
+      db.videos.welcome = fileUrl;
+    } else if (role === 'banner') {
+      db.videos.banner = fileUrl;
+    }
+
+    saveDatabase();
+    broadcastState();
+
     res.json({ success: true, url: fileUrl, filename: safeFilename });
   } catch (err) {
     res.status(500).json({ success: false, error: 'Gagal menyimpan file: ' + err.message });

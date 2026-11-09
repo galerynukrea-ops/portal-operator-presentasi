@@ -299,21 +299,58 @@
           </button>
         </div>
 
-        <!-- 2. Panduan File Video Offline -->
-        <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2 text-xs">
-          <h4 class="font-bold text-slate-300 uppercase tracking-wider">Lokasi File Video Looping (Offline)</h4>
-          <p class="text-slate-400 leading-relaxed">
-            Anda dapat langsung meletakkan file video format <code class="text-indigo-300 font-mono">.mp4</code> di folder:
-          </p>
-          <div class="p-2.5 bg-slate-900 rounded-xl font-mono text-[11px] text-indigo-400 border border-slate-800 select-all">
-            public/media/videos/tamu.mp4
+        <!-- 2. Pengaturan Video Looping & Audio Offline -->
+        <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Video Looping Panggung (.mp4)</h4>
+            <span class="text-[10px] text-indigo-400 font-semibold">Upload langsung atau isi link</span>
           </div>
-          <div class="p-2.5 bg-slate-900 rounded-xl font-mono text-[11px] text-emerald-400 border border-slate-800 select-all">
-            public/media/videos/banner.mp4
+
+          <!-- Video Sambut Tamu -->
+          <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 space-y-2">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-bold text-slate-200">1. Video Sambut Tamu (Pra-Acara)</span>
+              <span id="welcomeUploadMsg" class="text-[10px] text-slate-400 font-mono">Siap</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="text" id="inputWelcomeVideo" class="flex-1 px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white font-mono" placeholder="/media/videos/tamu.mp4 atau URL video">
+              <label class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs cursor-pointer transition shrink-0 flex items-center gap-1.5 shadow-md">
+                <i class="fa-solid fa-upload"></i> Upload .mp4
+                <input type="file" accept="video/mp4,video/webm" class="hidden" onchange="handleFileUpload(this, 'welcome')">
+              </label>
+            </div>
           </div>
-          <p class="text-[11px] text-slate-500">
-            *Jika belum ada file video, proyektor otomatis menampilkan background animasi partikel futuristik.
-          </p>
+
+          <!-- Video Banner Acara -->
+          <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 space-y-2">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-bold text-slate-200">2. Video Banner Acara (Backdrop Panggung)</span>
+              <span id="bannerUploadMsg" class="text-[10px] text-slate-400 font-mono">Siap</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="text" id="inputBannerVideo" class="flex-1 px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white font-mono" placeholder="/media/videos/banner.mp4 atau URL video">
+              <label class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer transition shrink-0 flex items-center gap-1.5 shadow-md">
+                <i class="fa-solid fa-upload"></i> Upload .mp4
+                <input type="file" accept="video/mp4,video/webm" class="hidden" onchange="handleFileUpload(this, 'banner')">
+              </label>
+            </div>
+          </div>
+
+          <!-- Musik BGM -->
+          <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 space-y-2">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-bold text-slate-200">3. Lagu Playlist BGM (.mp3)</span>
+              <span id="audioUploadMsg" class="text-[10px] text-amber-400 font-mono">Audio</span>
+            </div>
+            <label class="w-full py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs cursor-pointer transition border border-slate-700 flex items-center justify-center gap-2">
+              <i class="fa-solid fa-music text-amber-400"></i> Upload File Lagu MP3 dari Laptop
+              <input type="file" accept="audio/mp3,audio/*" class="hidden" onchange="handleFileUpload(this, 'audio')">
+            </label>
+          </div>
+
+          <button onclick="saveAllMediaConfig()" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-bold text-xs transition shadow-lg shadow-indigo-600/30">
+            Terapkan & Update ke Layar Proyektor
+          </button>
         </div>
       </div>
 
@@ -333,24 +370,88 @@
       if (show && currentState) {
         document.getElementById('modalBannerTitle').value = currentState.bannerTitle || '';
         document.getElementById('modalBannerSubtitle').value = currentState.bannerSubtitle || '';
+        document.getElementById('inputWelcomeVideo').value = (currentState.videos && currentState.videos.welcome) || '/media/videos/tamu.mp4';
+        document.getElementById('inputBannerVideo').value = (currentState.videos && currentState.videos.banner) || '/media/videos/banner.mp4';
       }
     }
 
-    async function saveBannerConfig() {
+    async function saveAllMediaConfig() {
       const bannerTitle = document.getElementById('modalBannerTitle').value.trim();
       const bannerSubtitle = document.getElementById('modalBannerSubtitle').value.trim();
+      const welcomeVideo = document.getElementById('inputWelcomeVideo').value.trim();
+      const bannerVideo = document.getElementById('inputBannerVideo').value.trim();
 
       try {
         await fetch('/api/stage/config', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bannerTitle, bannerSubtitle })
+          body: JSON.stringify({ bannerTitle, bannerSubtitle, welcomeVideo, bannerVideo })
         });
-        alert('Teks banner acara berhasil diperbarui di layar proyektor!');
+        alert('Pengaturan video & teks banner berhasil diterapkan ke proyektor!');
         toggleMediaModal(false);
       } catch (err) {
         alert('Gagal menyimpan: ' + err.message);
       }
+    }
+
+    async function saveBannerConfig() {
+      await saveAllMediaConfig();
+    }
+
+    async function handleFileUpload(inputEl, role) {
+      const file = inputEl.files[0];
+      if (!file) return;
+
+      const type = role === 'audio' ? 'audio' : 'video';
+      const msgEl = role === 'welcome' ? document.getElementById('welcomeUploadMsg') :
+                    (role === 'banner' ? document.getElementById('bannerUploadMsg') : document.getElementById('audioUploadMsg'));
+
+      if (msgEl) {
+        msgEl.className = 'text-[10px] text-amber-400 font-mono animate-pulse';
+        msgEl.textContent = 'Mengupload...';
+      }
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const base64Data = e.target.result;
+        try {
+          const res = await fetch('/api/upload-media', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              filename: file.name,
+              base64Data,
+              type,
+              role
+            })
+          });
+          const data = await res.json();
+          if (!data.success) {
+            alert('Upload gagal: ' + data.error);
+            if (msgEl) msgEl.textContent = 'Gagal';
+            return;
+          }
+
+          if (role === 'welcome') {
+            document.getElementById('inputWelcomeVideo').value = data.url;
+            msgEl.className = 'text-[10px] text-emerald-400 font-mono';
+            msgEl.textContent = '✓ ' + data.filename;
+          } else if (role === 'banner') {
+            document.getElementById('inputBannerVideo').value = data.url;
+            msgEl.className = 'text-[10px] text-emerald-400 font-mono';
+            msgEl.textContent = '✓ ' + data.filename;
+          } else {
+            msgEl.className = 'text-[10px] text-emerald-400 font-mono';
+            msgEl.textContent = '✓ ' + data.filename;
+          }
+
+          alert(`File ${file.name} berhasil diupload dan disetel ke proyektor!`);
+        } catch (err) {
+          alert('Upload error: ' + err.message);
+          if (msgEl) msgEl.textContent = 'Gagal';
+        }
+      };
+      reader.readAsDataURL(file);
     }
 
     // Change Master Scene
