@@ -148,8 +148,21 @@ async function normalizeCanvaUrl(rawUrl) {
 
 // API: Get Network Info & QR Code
 app.get('/api/network-info', async (req, res) => {
-  const localIp = getLocalNetworkIp();
-  const networkUrl = `http://${localIp}:${PORT}`;
+  const isVercel = Boolean(process.env.VERCEL);
+  const forwardedHost = req.headers['x-forwarded-host'] || req.headers.host;
+  const forwardedProto = req.headers['x-forwarded-proto'] || (req.secure ? 'https' : 'http');
+
+  let networkUrl;
+  let isCloud = false;
+
+  if (isVercel || (forwardedHost && !forwardedHost.includes('localhost') && !forwardedHost.includes('127.0.0.1') && !forwardedHost.startsWith('192.168.') && !forwardedHost.startsWith('10.') && !forwardedHost.startsWith('172.'))) {
+    networkUrl = `${forwardedProto}://${forwardedHost}`;
+    isCloud = true;
+  } else {
+    const localIp = getLocalNetworkIp();
+    networkUrl = `http://${localIp}:${PORT}`;
+  }
+
   const localUrl = `http://localhost:${PORT}`;
 
   try {
@@ -167,8 +180,7 @@ app.get('/api/network-info', async (req, res) => {
       localUrl,
       networkUrl,
       qrCodeDataUrl,
-      ip: localIp,
-      port: PORT
+      isCloud
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

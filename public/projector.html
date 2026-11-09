@@ -242,8 +242,11 @@
         const res = await fetch('/api/network-info');
         const data = await res.json();
         if (data.success) {
+          const isCloud = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+          const activeUrl = isCloud ? window.location.origin : data.networkUrl;
+
           document.getElementById('qrCodeImage').src = data.qrCodeDataUrl;
-          document.getElementById('displayUrl').textContent = data.networkUrl;
+          document.getElementById('displayUrl').textContent = activeUrl;
         }
       } catch (err) {
         console.error('Failed to load network info:', err);

@@ -183,13 +183,13 @@
           </div>
 
           <div class="bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
-            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">URL Wi-Fi Peserta:</p>
+            <p id="adminUrlLabel" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">URL Akses Peserta:</p>
             <p id="adminNetworkUrl" class="text-xs font-mono font-bold text-indigo-400 break-all select-all">
               Loading...
             </p>
           </div>
-          <p class="text-[11px] text-slate-500 text-center">
-            Peserta yang satu jaringan Wi-Fi bisa langsung membuka tautan ini untuk submit link Canva mereka.
+          <p id="adminUrlDesc" class="text-[11px] text-slate-500 text-center">
+            Peserta dapat langsung scan QR code atau membuka tautan ini untuk submit link Canva mereka.
           </p>
         </div>
 
@@ -402,8 +402,16 @@
         const res = await fetch('/api/network-info');
         const data = await res.json();
         if (data.success) {
+          const isCloud = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+          const activeUrl = isCloud ? window.location.origin : data.networkUrl;
+
           document.getElementById('adminQrCode').src = data.qrCodeDataUrl;
-          document.getElementById('adminNetworkUrl').textContent = data.networkUrl;
+          document.getElementById('adminNetworkUrl').textContent = activeUrl;
+
+          if (isCloud) {
+            document.getElementById('adminUrlLabel').textContent = 'URL Online Peserta (Vercel Cloud):';
+            document.getElementById('adminUrlDesc').textContent = 'Peserta dari mana saja dapat scan QR atau membuka link ini via HP/kuota data masing-masing.';
+          }
         }
       } catch (err) {
         console.error('Failed to load network info:', err);
