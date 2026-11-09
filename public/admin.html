@@ -181,6 +181,21 @@
             <i class="fa-solid fa-landmark"></i>
             <span>Kembali ke Banner Acara (Tanya Jawab / Jeda)</span>
           </button>
+
+          <!-- Presenter View: Control slides from laptop without touching projector -->
+          <div class="p-3.5 bg-slate-950 rounded-2xl border border-indigo-500/30 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-white flex items-center gap-1.5">
+                <i class="fa-solid fa-laptop text-indigo-400"></i> Kontrol Slide di Layar Laptop
+              </span>
+              <button onclick="openCanvaPresenterView()" class="text-[11px] px-3 py-1 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition flex items-center gap-1 shadow-md cursor-pointer">
+                <i class="fa-solid fa-up-right-from-square text-[10px]"></i> Mode Presenter
+              </button>
+            </div>
+            <p class="text-[10.5px] text-slate-400 leading-relaxed">
+              Membuka jendela <strong>Canva Presenter View</strong> di laptop Anda: tombol <strong>Next & Prev Slide</strong>, timer, dan catatan tampil di laptop Anda tanpa perlu kursor digeser ke layar proyektor.
+            </p>
+          </div>
         </div>
 
         <!-- Participant Portal Link & QR Box -->
@@ -395,6 +410,18 @@
     // Activate Specific Presentation
     async function activateItem(id) {
       changeStageScene('presentation', id);
+    }
+
+    // Open Canva Presenter View on laptop (Next/Prev slide buttons on laptop)
+    function openCanvaPresenterView() {
+      if (!currentState || !currentState.activeItem) {
+        alert('Silakan klik tombol "Tampilkan" pada salah satu peserta terlebih dahulu sebelum membuka Mode Presenter.');
+        return;
+      }
+      const item = currentState.activeItem;
+      // Open in a dedicated presenter window
+      const url = item.presentUrl || item.originalUrl;
+      window.open(url, 'CANVA_PRESENTER_VIEW');
     }
 
     // Direct Canva Stage Window
