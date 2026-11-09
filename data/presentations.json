@@ -1,0 +1,30 @@
+{
+  "presentations": [
+    {
+      "id": "pres_1794243586491_iozp6",
+      "name": "Tri Hamdani Sholihin",
+      "topic": "Presentasi Canva",
+      "originalUrl": "https://canva.link/zi8ayp0ltkzf39f",
+      "embedUrl": "https://www.canva.com/design/DAHabGD4U0E/NuM2S_yy86zztmS4Ah5sZw/view?embed",
+      "presentUrl": "https://www.canva.com/design/DAHabGD4U0E/NuM2S_yy86zztmS4Ah5sZw/view",
+      "designId": "DAHabGD4U0E",
+      "order": 1,
+      "status": "completed",
+      "createdAt": "2026-11-09T16:59:46.493Z"
+    },
+    {
+      "id": "pres_1794245275912_924m0",
+      "name": "Karmadi",
+      "topic": "Karmadi",
+      "originalUrl": "https://canva.link/99628jysuisczde",
+      "embedUrl": "https://www.canva.com/design/DAHaPo5F-XE/85AaFH2ZGBl9w5HMHK8x-g/view?embed",
+      "presentUrl": "https://www.canva.com/design/DAHaPo5F-XE/85AaFH2ZGBl9w5HMHK8x-g/view",
+      "designId": "DAHaPo5F-XE",
+      "order": 2,
+      "status": "active",
+      "createdAt": "2026-11-09T17:27:55.914Z"
+    }
+  ],
+  "activeId": "pres_1794245275912_924m0",
+  "isStandby": false
+}

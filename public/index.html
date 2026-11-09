@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Pengumpulan Slide Canva</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    /* ========================================================= */
+    /* STANDALONE BULLETPROOF STYLING (ZERO EXTERNAL CDN NEEDED) */
+    /* ========================================================= */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(circle at top left, #1e1b4b, #0f172a 60%, #030712 100%);
+      color: #f8fafc;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 16px;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 520px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      padding: 16px 0 24px;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      color: #a5b4fc;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1.25;
+      background: linear-gradient(135deg, #ffffff 30%, #c7d2fe 70%, #818cf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: #94a3b8;
+      font-size: 13.5px;
+      line-height: 1.45;
+    }
+
+    /* Main Card */
+    .card {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(51, 65, 85, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: #cbd5e1;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .req {
+      color: #f43f5e;
+    }
+
+    .opt {
+      color: #64748b;
+      font-weight: normal;
+      text-transform: none;
+    }
+
+    .btn-link {
+      background: none;
+      border: none;
+      color: #818cf8;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0;
+    }
+
+    .btn-link:hover {
+      color: #a5b4fc;
+      text-decoration: underline;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 14px;
+      width: 18px;
+      height: 18px;
+      color: #64748b;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    input[type="text"],
+    input[type="url"] {
+      width: 100%;
+      padding: 13px 14px 13px 42px;
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(71, 85, 105, 0.8);
+      border-radius: 14px;
+      color: #ffffff;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input[type="url"] {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12.5px;
+    }
+
+    input:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+    }
+
+    input::placeholder {
+      color: #64748b;
+    }
+
+    .input-hint {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 6px;
+      display: flex;
+      align-items: flex-start;
+      gap: 5px;
+      line-height: 1.4;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      border: none;
+      border-radius: 14px;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 8px 20px -4px rgba(99, 102, 241, 0.45);
+      transition: transform 0.1s, opacity 0.2s;
+      margin-top: 10px;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    /* Success / Status Card */
+    .status-card {
+      text-align: center;
+      border-color: rgba(16, 185, 129, 0.4);
+    }
+
+    .check-circle {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #34d399;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 14px;
+    }
+
+    .queue-info-box {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(51, 65, 85, 0.7);
+      border-radius: 16px;
+      padding: 14px;
+      margin: 18px 0;
+      text-align: left;
+    }
+
+    .queue-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+      font-size: 12.5px;
+    }
+
+    .queue-row:last-child {
+      border-bottom: none;
+      padding-bottom: 2px;
+    }
+
+    .queue-label {
+      color: #94a3b8;
+    }
+
+    .queue-number-badge {
+      font-size: 16px;
+      font-weight: 800;
+      color: #818cf8;
+      background: rgba(99, 102, 241, 0.15);
+      padding: 3px 10px;
+      border-radius: 8px;
+    }
+
+    .badge-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      font-size: 11.5px;
+      font-weight: 700;
+    }
+
+    .status-waiting {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .status-active {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      animation: pulse 1.5s infinite;
+    }
+
+    .status-done {
+      background: rgba(99, 102, 241, 0.2);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .btn-secondary {
+      flex: 1;
+      padding: 11px;
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(71, 85, 105, 0.6);
+      border-radius: 12px;
+      color: #cbd5e1;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(51, 65, 85, 0.9);
+      color: #ffffff;
+    }
+
+    /* Live connection footer */
+    .connection-bar {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(51, 65, 85, 0.5);
+      border-radius: 14px;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11.5px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+
+    .dot-live {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      display: inline-block;
+      box-shadow: 0 0 8px #10b981;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-box {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 20px;
+      max-width: 440px;
+      width: 100%;
+      padding: 22px;
+      position: relative;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px;
+      line-height: 1;
+    }
+
+    .modal-list {
+      margin: 14px 0 18px 18px;
+      font-size: 12.5px;
+      color: #cbd5e1;
+      line-height: 1.6;
+    }
+
+    .modal-list li {
+      margin-bottom: 8px;
+    }
+
+    .pill-highlight {
+      display: inline-block;
+      background: rgba(99, 102, 241, 0.2);
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      color: #c7d2fe;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 11px;
+      color: #64748b;
+      padding: 18px 0 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="container">
+    <div class="badge-pill">
+      <!-- Screen icon SVG -->
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+      </svg>
+      Portal Presentasi Canva
+    </div>
+    <h1>Kumpulkan Slide Presentasi</h1>
+    <p class="subtitle">
+      Masukkan nama & tautan Canva Anda. Operator akan langsung menampilkannya di proyektor saat giliran tiba.
+    </p>
+  </header>
+
+  <!-- Main Container -->
+  <main class="container">
+    
+    <!-- SUBMISSION FORM CARD -->
+    <div id="formCard" class="card">
+      <form id="submissionForm" onsubmit="handleSubmit(event)">
+        
+        <!-- Nama Peserta -->
+        <div class="form-group">
+          <label for="name">Nama Lengkap / Kelompok <span class="req">*</span></label>
+          <div class="input-wrapper" style="margin-top: 6px;">
+            <span class="input-icon">
+              <!-- User SVG -->
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              </svg>
+            </span>
+            <input type="text" id="name" required placeholder="Contoh: Tri Hamdani / Kelompok 3">
+          </div>
+        </div>
+
+        <!-- Topik Presentasi -->
+        <div class="form-group">
+          <label for="topic">Judul / Topik Presentasi <span class="opt">(Opsional)</span></label>
+          <div class="input-wrapper" style="margin-top: 6px;">
+            <span class="input-icon">
+              <!-- Lightbulb SVG -->
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/>
+              </svg>
+            </span>
+            <input type="text" id="topic" placeholder="Contoh: Strategi AI Masa Depan">
+          </div>
+        </div>
+
+        <!-- Link Canva -->
+        <div class="form-group">
+          <div class="label-row">
+            <label for="canvaUrl">Link Canva <span class="req">*</span></label>
+            <button type="button" onclick="toggleGuideModal(true)" class="btn-link">
+              <!-- Question SVG -->
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              Cara ambil link?
+            </button>
+          </div>
+          <div class="input-wrapper">
+            <span class="input-icon">
+              <!-- Link SVG -->
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+              </svg>
+            </span>
+            <input type="url" id="canvaUrl" required placeholder="https://canva.link/... atau https://www.canva.com/...">
+          </div>
+          <p class="input-hint">
+            <span>ℹ️</span> Pastikan izin diatur ke: <strong>"Siapa saja yang memiliki tautan bisa melihat"</strong>.
+          </p>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" id="submitBtn" class="btn-primary">
+          <!-- Send SVG -->
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+          <span id="btnText">Kirim Slide ke Operator</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- SUCCESS / STATUS CARD (EXPLICITLY HIDDEN INLINE) -->
+    <div id="statusCard" class="card status-card" style="display: none;">
+      <div class="check-circle">
+        <!-- Checkmark SVG -->
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+
+      <h2 style="font-size: 20px; font-weight: 800; color: #ffffff; margin-bottom: 4px;">Slide Berhasil Didaftarkan!</h2>
+      <p style="font-size: 13px; color: #94a3b8;">Operator sudah menerima slide Canva Anda.</p>
+
+      <!-- Queue Box -->
+      <div class="queue-info-box">
+        <div class="queue-row">
+          <span class="queue-label">Nomor Urutan Anda</span>
+          <span id="myQueueNumber" class="queue-number-badge">#1</span>
+        </div>
+        <div class="queue-row">
+          <span class="queue-label">Status Anda</span>
+          <span id="myStatusBadge" class="badge-status status-waiting">
+            ● Dalam Antrian
+          </span>
+        </div>
+        <div class="queue-row">
+          <span class="queue-label">Sedang Tampil di Proyektor</span>
+          <span id="currentPresenterName" style="font-weight: 700; color: #f1f5f9;">-</span>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button type="button" onclick="resetSubmission()" class="btn-secondary">
+          ✏️ Daftarkan Ulang / Edit
+        </button>
+        <a id="myPreviewLink" href="#" target="_blank" class="btn-secondary" style="color: #a5b4fc; border-color: rgba(99, 102, 241, 0.4);">
+          🔗 Cek Link Canva
+        </a>
+      </div>
+    </div>
+
+    <!-- Live Status Footer -->
+    <div class="connection-bar">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="dot-live"></span>
+        <span>Terhubung ke Operator</span>
+      </div>
+      <div id="liveQueueCount" style="font-weight: 600; color: #e2e8f0;">
+        Total Terdaftar: <strong style="color: #ffffff;">1</strong> Peserta
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="container">
+    Portal Presentasi Canva • Otomatisasi Proyektor Real-Time
+  </footer>
+
+  <!-- MODAL TUTORIAL (EXPLICITLY HIDDEN INLINE) -->
+  <div id="guideModal" class="modal-overlay" style="display: none;">
+    <div class="modal-box">
+      <button type="button" onclick="toggleGuideModal(false)" class="modal-close">&times;</button>
+      
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+        <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(99, 102, 241, 0.2); color: #818cf8; display: flex; align-items: center; justify-content: center;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
+        </div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: #ffffff;">Cara Ambil Link Canva</h3>
+          <p style="font-size: 11px; color: #94a3b8;">Agar proyektor bisa membuka slide</p>
+        </div>
+      </div>
+
+      <ol class="modal-list">
+        <li>Buka desain slide Anda di web atau aplikasi <strong>Canva</strong>.</li>
+        <li>Klik tombol <strong>Bagikan (Share)</strong> di kanan atas.</li>
+        <li>Pada menu tautan kolaborasi, ubah pilihan menjadi:
+          <span class="pill-highlight">"Siapa saja yang memiliki tautan" ➔ "Dapat melihat"</span>
+        </li>
+        <li>Klik tombol <strong>Salin tautan (Copy link)</strong>.</li>
+        <li>Tempelkan (*paste*) tautan ke formulir pendaftaran.</li>
+      </ol>
+
+      <button type="button" onclick="toggleGuideModal(false)" class="btn-primary" style="margin-top: 14px;">
+        Saya Mengerti
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Initialize Socket.io
+    let socket = null;
+    try {
+      if (typeof io !== 'undefined') {
+        socket = io({ query: { type: 'attendee' } });
+      }
+    } catch(err) {
+      console.warn('Socket init fallback:', err);
+    }
+
+    let myRegisteredId = localStorage.getItem('my_canva_pres_id') || null;
+
+    function toggleGuideModal(show) {
+      const modal = document.getElementById('guideModal');
+      modal.style.display = show ? 'flex' : 'none';
+    }
+
+    async function handleSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const topic = document.getElementById('topic').value.trim();
+      const canvaUrl = document.getElementById('canvaUrl').value.trim();
+      const btn = document.getElementById('submitBtn');
+      const btnText = document.getElementById('btnText');
+
+      if (!name || !canvaUrl) {
+        alert('Mohon isi nama dan link Canva Anda.');
+        return;
+      }
+
+      btn.disabled = true;
+      btnText.textContent = 'Mendaftarkan...';
+
+      try {
+        const res = await fetch('/api/presentations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, topic, canvaUrl })
+        });
+        const data = await res.json();
+
+        if (!data.success) {
+          alert('Error: ' + data.error);
+          btn.disabled = false;
+          btnText.textContent = 'Kirim Slide ke Operator';
+          return;
+        }
+
+        // Store my submission ID
+        myRegisteredId = data.data.id;
+        localStorage.setItem('my_canva_pres_id', myRegisteredId);
+        showSuccessView(data.data);
+      } catch (err) {
+        alert('Gagal mengirim: ' + err.message);
+        btn.disabled = false;
+        btnText.textContent = 'Kirim Slide ke Operator';
+      }
+    }
+
+    function showSuccessView(item) {
+      document.getElementById('formCard').style.display = 'none';
+      document.getElementById('statusCard').style.display = 'block';
+
+      document.getElementById('myQueueNumber').textContent = '#' + item.order;
+      document.getElementById('myPreviewLink').href = item.originalUrl;
+      updateMyStatus(item);
+    }
+
+    function resetSubmission() {
+      if (confirm('Daftarkan slide presentasi baru atau ganti nama?')) {
+        document.getElementById('statusCard').style.display = 'none';
+        document.getElementById('formCard').style.display = 'block';
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = false;
+        document.getElementById('btnText').textContent = 'Kirim Slide ke Operator';
+      }
+    }
+
+    function updateMyStatus(item) {
+      const badge = document.getElementById('myStatusBadge');
+      if (item.status === 'active') {
+        badge.className = 'badge-status status-active';
+        badge.innerHTML = '● SEDANG TAMPIL DI PROYEKTOR';
+      } else if (item.status === 'completed') {
+        badge.className = 'badge-status status-done';
+        badge.innerHTML = '✓ Selesai';
+      } else {
+        badge.className = 'badge-status status-waiting';
+        badge.innerHTML = '● Dalam Antrian';
+      }
+    }
+
+    // Socket real-time updates
+    if (socket) {
+      socket.on('state_updated', (state) => {
+        document.getElementById('liveQueueCount').innerHTML = `Total Terdaftar: <strong style="color:#ffffff;">${state.totalCount}</strong> Peserta`;
+
+        if (state.activeItem) {
+          document.getElementById('currentPresenterName').innerHTML = `<span style="color:#34d399; font-weight:700;">${state.activeItem.name}</span>`;
+        } else {
+          document.getElementById('currentPresenterName').innerHTML = `<span style="color:#94a3b8;">Standby</span>`;
+        }
+
+        if (myRegisteredId) {
+          const found = state.presentations.find(p => p.id === myRegisteredId);
+          if (found) {
+            showSuccessView(found);
+          }
+        }
+      });
+    }
+
+    // Check initial state via REST API on load
+    fetch('/api/state')
+      .then(res => res.json())
+      .then(state => {
+        document.getElementById('liveQueueCount').innerHTML = `Total Terdaftar: <strong style="color:#ffffff;">${state.totalCount}</strong> Peserta`;
+        if (state.activeItem) {
+          document.getElementById('currentPresenterName').innerHTML = `<span style="color:#34d399; font-weight:700;">${state.activeItem.name}</span>`;
+        }
+        if (myRegisteredId) {
+          const found = state.presentations.find(p => p.id === myRegisteredId);
+          if (found) {
+            showSuccessView(found);
+          }
+        }
+      })
+      .catch(() => {});
+  </script>
+</body>
+</html>

@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Operator Presentasi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #0b0f19;
+      color: #f1f5f9;
+      min-height: 100vh;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="p-4 md:p-6 lg:p-8">
+
+  <div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Top Navigation Bar -->
+    <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-5 rounded-3xl shadow-xl">
+      <div class="flex items-center gap-3.5">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white flex items-center justify-center text-xl shadow-lg shadow-indigo-500/25">
+          <i class="fa-solid fa-sliders"></i>
+        </div>
+        <div>
+          <h1 class="text-xl md:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+            Operator Presentasi <span class="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">Admin Pro</span>
+          </h1>
+          <p class="text-xs text-slate-400">Kontrol penuh urutan dan penayangan slide Canva di proyektor</p>
+        </div>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="flex flex-wrap items-center gap-2.5">
+        <!-- Open Projector Window -->
+        <button onclick="openProjectorWindow()" class="px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition flex items-center gap-2 cursor-pointer">
+          <i class="fa-solid fa-display"></i>
+          <span>Buka Layar Proyektor</span>
+        </button>
+
+        <!-- Standby Toggle -->
+        <button onclick="toggleStandby()" class="px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold text-xs border border-slate-700 transition flex items-center gap-2 cursor-pointer">
+          <i class="fa-solid fa-pause text-amber-400"></i>
+          <span>Layar Standby</span>
+        </button>
+
+        <!-- Sound Notification Toggle -->
+        <button id="soundToggleBtn" onclick="toggleAudio()" class="w-10 h-10 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-xs border border-slate-700 transition cursor-pointer" title="Notifikasi Suara saat peserta baru masuk">
+          <i class="fa-solid fa-volume-high text-emerald-400" id="soundIcon"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Stats and Network Info Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <!-- Stat 1: Total Peserta -->
+      <div class="bg-slate-900/60 border border-slate-800/80 p-5 rounded-3xl relative overflow-hidden">
+        <div class="flex justify-between items-center">
+          <div>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Peserta</p>
+            <p id="statTotal" class="text-3xl font-black text-white mt-1">0</p>
+          </div>
+          <div class="w-11 h-11 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-users"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stat 2: Sedang Tampil -->
+      <div class="bg-slate-900/60 border border-emerald-500/20 p-5 rounded-3xl relative overflow-hidden">
+        <div class="flex justify-between items-center">
+          <div>
+            <p class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Di Proyektor
+            </p>
+            <p id="statActivePresenter" class="text-sm font-bold text-white mt-2 truncate max-w-[170px]">Standby</p>
+          </div>
+          <div class="w-11 h-11 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-chalkboard-user"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stat 3: Sisa Antrian -->
+      <div class="bg-slate-900/60 border border-slate-800/80 p-5 rounded-3xl relative overflow-hidden">
+        <div class="flex justify-between items-center">
+          <div>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Sisa Antrian</p>
+            <p id="statQueue" class="text-3xl font-black text-amber-400 mt-1">0</p>
+          </div>
+          <div class="w-11 h-11 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-hourglass-half"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stat 4: Selesai -->
+      <div class="bg-slate-900/60 border border-slate-800/80 p-5 rounded-3xl relative overflow-hidden">
+        <div class="flex justify-between items-center">
+          <div>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Selesai Tampil</p>
+            <p id="statCompleted" class="text-3xl font-black text-slate-300 mt-1">0</p>
+          </div>
+          <div class="w-11 h-11 rounded-2xl bg-slate-800 text-slate-400 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Workspace Layout: Controls + List -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- LEFT COLUMN: Live Controller & Network Sharing -->
+      <div class="space-y-6">
+        
+        <!-- Live Playback Control Box -->
+        <div class="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-6 rounded-3xl shadow-xl">
+          <h2 class="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2 mb-4">
+            <i class="fa-solid fa-gamepad text-indigo-400"></i> Kontrol Proyektor Cepat
+          </h2>
+
+          <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800/90 mb-5">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Status Proyektor Saat Ini:</span>
+            <div id="projectorCurrentStatus" class="text-base font-extrabold text-amber-400 flex items-center gap-2">
+              <i class="fa-solid fa-pause"></i> Layar Standby
+            </div>
+            <p id="projectorCurrentTopic" class="text-xs text-slate-400 mt-1 truncate">Tidak ada presentasi aktif</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <!-- Prev Button -->
+            <button onclick="handlePrev()" class="py-3 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold text-xs border border-slate-700 transition flex items-center justify-center gap-2 cursor-pointer">
+              <i class="fa-solid fa-backward-step"></i>
+              <span>Sebelumnya</span>
+            </button>
+
+            <!-- Next Button -->
+            <button onclick="handleNext()" class="py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2 cursor-pointer">
+              <span>Selanjutnya</span>
+              <i class="fa-solid fa-forward-step"></i>
+            </button>
+          </div>
+
+          <!-- Direct Tab Feature Note -->
+          <div class="pt-3 border-t border-slate-800">
+            <p class="text-[11px] text-slate-400 leading-relaxed mb-3">
+              <strong class="text-indigo-300">Tips Pro:</strong> Ingin kendali langsung di web Canva asli (pointer, notes)? Klik tombol petir <i class="fa-solid fa-bolt text-amber-400"></i> pada baris peserta di bawah untuk membuka tab fullscreen Canva yang otomatis berganti saat diklik peserta lain.
+            </p>
+          </div>
+        </div>
+
+        <!-- Participant Portal Link & QR Box -->
+        <div class="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-6 rounded-3xl shadow-xl space-y-4">
+          <div class="flex justify-between items-center">
+            <h2 class="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <i class="fa-solid fa-qrcode text-indigo-400"></i> Link Input Peserta
+            </h2>
+            <button onclick="copySubmissionLink()" class="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1 transition">
+              <i class="fa-regular fa-copy"></i> Salin Link
+            </button>
+          </div>
+
+          <!-- QR Code Preview -->
+          <div class="bg-white p-3 rounded-2xl w-fit mx-auto shadow-md">
+            <img id="adminQrCode" src="" alt="QR Pendaftaran" class="w-40 h-40 object-contain rounded-lg">
+          </div>
+
+          <div class="bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">URL Wi-Fi Peserta:</p>
+            <p id="adminNetworkUrl" class="text-xs font-mono font-bold text-indigo-400 break-all select-all">
+              Loading...
+            </p>
+          </div>
+          <p class="text-[11px] text-slate-500 text-center">
+            Peserta yang satu jaringan Wi-Fi bisa langsung membuka tautan ini untuk submit link Canva mereka.
+          </p>
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN: Presenter Queue Table (2 cols wide) -->
+      <div class="lg:col-span-2 space-y-4">
+
+        <!-- Table Header & Actions -->
+        <div class="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-5 rounded-3xl shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-base font-extrabold text-white flex items-center gap-2">
+              <i class="fa-solid fa-list-ol text-indigo-400"></i> Daftar Antrian Presentasi
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">Klik tombol "Tampilkan" untuk langsung memunculkan slide peserta di proyektor</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <!-- Search Input -->
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 text-xs">
+                <i class="fa-solid fa-magnifying-glass"></i>
+              </span>
+              <input type="text" id="searchInput" oninput="handleSearch(this.value)" placeholder="Cari nama peserta..."
+                class="pl-8 pr-3 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-44 sm:w-56">
+            </div>
+
+            <!-- Reset Button -->
+            <button onclick="handleResetAll()" class="p-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition text-xs font-bold" title="Reset Semua Antrian">
+              <i class="fa-regular fa-trash-can"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Participants List Container -->
+        <div id="participantsContainer" class="space-y-3 custom-scrollbar">
+          <!-- Filled dynamically via JS -->
+          <div class="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-12 text-center text-slate-500">
+            <i class="fa-solid fa-inbox text-4xl mb-3 text-slate-600 block"></i>
+            <p class="text-sm font-semibold">Belum ada peserta yang mendaftar.</p>
+            <p class="text-xs mt-1">Minta peserta untuk scan QR code atau membuka portal pendaftaran.</p>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Audio Element for new submissions chime -->
+  <audio id="chimeAudio" preload="auto">
+    <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
+  </audio>
+
+  <script>
+    const socket = io({ query: { type: 'admin' } });
+    let currentState = null;
+    let searchQuery = '';
+    let soundEnabled = true;
+    let previousCount = 0;
+    let projectorTab = null;
+
+    // Toggle sound
+    function toggleAudio() {
+      soundEnabled = !soundEnabled;
+      const icon = document.getElementById('soundIcon');
+      if (soundEnabled) {
+        icon.className = 'fa-solid fa-volume-high text-emerald-400';
+      } else {
+        icon.className = 'fa-solid fa-volume-xmark text-slate-500';
+      }
+    }
+
+    // Open Projector Screen
+    function openProjectorWindow() {
+      const url = '/projector';
+      projectorTab = window.open(url, 'PROYECTOR_WINDOW', 'width=1280,height=720,menubar=no,toolbar=no,location=no');
+      if (projectorTab) {
+        projectorTab.focus();
+      }
+    }
+
+    // Open Canva directly in a named dedicated presentation window (Seamless tab replacement)
+    function openDirectCanvaWindow(url) {
+      const stageWindow = window.open(url, 'CANVA_STAGE_WINDOW');
+      if (stageWindow) {
+        stageWindow.focus();
+      }
+    }
+
+    // Toggle Standby
+    async function toggleStandby() {
+      try {
+        await fetch('/api/projector/standby', { method: 'POST' });
+      } catch (err) {
+        alert('Gagal mengubah mode standby: ' + err.message);
+      }
+    }
+
+    // Activate specific presentation
+    async function activateItem(id, canvaUrl) {
+      try {
+        const res = await fetch('/api/projector/activate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id })
+        });
+        const data = await res.json();
+        if (!data.success) {
+          alert('Error: ' + data.error);
+        }
+      } catch (err) {
+        alert('Gagal mengaktifkan presentasi: ' + err.message);
+      }
+    }
+
+    // Next
+    async function handleNext() {
+      try {
+        const res = await fetch('/api/projector/next', { method: 'POST' });
+        const data = await res.json();
+        if (data.finished) {
+          alert('Semua presentasi dalam antrian telah selesai!');
+        }
+      } catch (err) {
+        alert('Gagal memindahkan ke presentasi selanjutnya: ' + err.message);
+      }
+    }
+
+    // Prev
+    async function handlePrev() {
+      try {
+        const res = await fetch('/api/projector/prev', { method: 'POST' });
+        const data = await res.json();
+        if (!data.success) {
+          alert(data.error);
+        }
+      } catch (err) {
+        alert('Gagal: ' + err.message);
+      }
+    }
+
+    // Delete
+    async function deleteItem(id) {
+      if (!confirm('Yakin ingin menghapus peserta ini dari antrian?')) return;
+      try {
+        await fetch(`/api/presentations/${id}`, { method: 'DELETE' });
+      } catch (err) {
+        alert('Gagal menghapus: ' + err.message);
+      }
+    }
+
+    // Move Up / Down
+    async function moveItem(id, direction) {
+      if (!currentState || !currentState.presentations) return;
+      const list = [...currentState.presentations];
+      const index = list.findIndex(p => p.id === id);
+      if (index < 0) return;
+
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= list.length) return;
+
+      // Swap
+      const temp = list[index];
+      list[index] = list[targetIndex];
+      list[targetIndex] = temp;
+
+      const orderedIds = list.map(p => p.id);
+      try {
+        await fetch('/api/presentations/reorder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderedIds })
+        });
+      } catch (err) {
+        alert('Gagal mengubah urutan: ' + err.message);
+      }
+    }
+
+    // Reset All
+    async function handleResetAll() {
+      if (!confirm('PERINGATAN: Anda yakin ingin menghapus seluruh daftar antrian? Data yang dihapus tidak dapat dikembalikan.')) return;
+      try {
+        await fetch('/api/presentations/reset', { method: 'POST' });
+      } catch (err) {
+        alert('Gagal mereset: ' + err.message);
+      }
+    }
+
+    // Search filter
+    function handleSearch(val) {
+      searchQuery = val.toLowerCase().trim();
+      if (currentState) {
+        renderList(currentState.presentations);
+      }
+    }
+
+    // Copy URL
+    function copySubmissionLink() {
+      const url = document.getElementById('adminNetworkUrl').textContent.trim();
+      navigator.clipboard.writeText(url).then(() => {
+        alert('Link pendaftaran peserta berhasil disalin ke clipboard!\n' + url);
+      });
+    }
+
+    // Init Network Info
+    async function loadNetworkInfo() {
+      try {
+        const res = await fetch('/api/network-info');
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('adminQrCode').src = data.qrCodeDataUrl;
+          document.getElementById('adminNetworkUrl').textContent = data.networkUrl;
+        }
+      } catch (err) {
+        console.error('Failed to load network info:', err);
+      }
+    }
+    loadNetworkInfo();
+
+    // Socket listener
+    socket.on('state_updated', (state) => {
+      // Audio chime on new registration
+      if (previousCount > 0 && state.presentations.length > previousCount && soundEnabled) {
+        try {
+          const audio = document.getElementById('chimeAudio');
+          audio.currentTime = 0;
+          audio.play().catch(e => console.log('Chime blocked by browser policy until interaction'));
+        } catch(e) {}
+      }
+      previousCount = state.presentations.length;
+
+      currentState = state;
+      updateStats(state);
+      renderList(state.presentations);
+    });
+
+    function updateStats(state) {
+      document.getElementById('statTotal').textContent = state.totalCount;
+
+      const activeItem = state.activeItem;
+      const activePresenterEl = document.getElementById('statActivePresenter');
+      const statusTitleEl = document.getElementById('projectorCurrentStatus');
+      const statusTopicEl = document.getElementById('projectorCurrentTopic');
+
+      if (!state.isStandby && activeItem) {
+        activePresenterEl.textContent = activeItem.name;
+        statusTitleEl.className = 'text-base font-extrabold text-emerald-400 flex items-center gap-2';
+        statusTitleEl.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span> ${activeItem.name}`;
+        statusTopicEl.textContent = activeItem.topic || 'Presentasi';
+      } else {
+        activePresenterEl.textContent = 'Standby';
+        statusTitleEl.className = 'text-base font-extrabold text-amber-400 flex items-center gap-2';
+        statusTitleEl.innerHTML = `<i class="fa-solid fa-pause"></i> Layar Standby (Menunggu)`;
+        statusTopicEl.textContent = state.nextItem ? `Berikutnya: ${state.nextItem.name}` : 'Tidak ada presentasi aktif';
+      }
+
+      const queueCount = state.presentations.filter(p => p.status === 'queue').length;
+      const completedCount = state.presentations.filter(p => p.status === 'completed').length;
+
+      document.getElementById('statQueue').textContent = queueCount;
+      document.getElementById('statCompleted').textContent = completedCount;
+    }
+
+    function renderList(presentations) {
+      const container = document.getElementById('participantsContainer');
+
+      let filtered = presentations;
+      if (searchQuery) {
+        filtered = presentations.filter(p =>
+          p.name.toLowerCase().includes(searchQuery) ||
+          (p.topic && p.topic.toLowerCase().includes(searchQuery))
+        );
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-12 text-center text-slate-500">
+            <i class="fa-solid fa-inbox text-4xl mb-3 text-slate-600 block"></i>
+            <p class="text-sm font-semibold">${searchQuery ? 'Tidak ada peserta yang cocok dengan pencarian.' : 'Belum ada peserta yang mendaftar.'}</p>
+            <p class="text-xs mt-1">Minta peserta untuk scan QR code atau membuka portal pendaftaran.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map((item, index) => {
+        const isActive = currentState && !currentState.isStandby && currentState.activeId === item.id;
+        const isCompleted = item.status === 'completed';
+
+        let cardBorder = 'border-slate-800/80 bg-slate-900/70';
+        let statusBadge = `
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700">
+            <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span> Menunggu
+          </span>
+        `;
+
+        if (isActive) {
+          cardBorder = 'border-emerald-500/50 bg-emerald-950/20 shadow-lg shadow-emerald-950/30 ring-1 ring-emerald-500/30';
+          statusBadge = `
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span> SEDANG TAMPIL
+            </span>
+          `;
+        } else if (isCompleted) {
+          cardBorder = 'border-slate-800/60 bg-slate-950/40 opacity-75';
+          statusBadge = `
+            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-slate-800/80 text-slate-400 border border-slate-700/60">
+              <i class="fa-solid fa-check text-indigo-400 text-[10px]"></i> Selesai
+            </span>
+          `;
+        }
+
+        return `
+          <div class="border ${cardBorder} rounded-3xl p-4 md:p-5 transition-all duration-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            
+            <!-- Left Info -->
+            <div class="flex items-start md:items-center gap-3.5 min-w-0">
+              <!-- Order Number -->
+              <div class="w-10 h-10 rounded-2xl ${isActive ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 text-slate-300 border border-slate-700'} flex items-center justify-center font-extrabold text-sm shrink-0">
+                #${item.order}
+              </div>
+
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2 mb-1">
+                  <h3 class="text-base font-bold text-white truncate">${item.name}</h3>
+                  ${statusBadge}
+                </div>
+                <p class="text-xs text-slate-400 truncate max-w-md">
+                  <i class="fa-solid fa-bookmark text-slate-600 mr-1 text-[10px]"></i> ${item.topic || 'Presentasi'}
+                </p>
+                <div class="flex items-center gap-3 mt-1.5 text-[11px] text-slate-500 font-mono">
+                  <span>${new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span>•</span>
+                  <a href="${item.originalUrl}" target="_blank" class="text-indigo-400 hover:text-indigo-300 hover:underline flex items-center gap-1">
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> Link Canva
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Buttons / Operations -->
+            <div class="flex items-center gap-2 shrink-0 self-end md:self-center">
+              
+              <!-- Tampilkan di Proyektor Button -->
+              <button onclick="activateItem('${item.id}', '${item.originalUrl}')"
+                class="px-4 py-2.5 rounded-2xl ${isActive ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400' : 'bg-indigo-600 hover:bg-indigo-500 text-white'} font-bold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer">
+                <i class="fa-solid ${isActive ? 'fa-circle-check' : 'fa-play'}"></i>
+                <span>${isActive ? 'Sedang Tampil' : 'Tampilkan'}</span>
+              </button>
+
+              <!-- Direct Stage Window Tab (Named window reuse) -->
+              <button onclick="openDirectCanvaWindow('${item.originalUrl}')"
+                class="w-10 h-10 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center transition text-xs cursor-pointer"
+                title="Buka di Tab Canva Layar Penuh Mandiri">
+                <i class="fa-solid fa-bolt"></i>
+              </button>
+
+              <!-- Move Up -->
+              <button onclick="moveItem('${item.id}', 'up')" ${index === 0 ? 'disabled' : ''}
+                title="${index === 0 ? 'Sudah berada di urutan paling atas' : 'Naikkan urutan antrian peserta'}"
+                class="w-9 h-9 rounded-2xl bg-slate-800 hover:bg-slate-700 disabled:opacity-25 disabled:cursor-not-allowed text-slate-300 flex items-center justify-center transition text-xs border border-slate-700">
+                <i class="fa-solid fa-arrow-up"></i>
+              </button>
+
+              <!-- Move Down -->
+              <button onclick="moveItem('${item.id}', 'down')" ${index === filtered.length - 1 ? 'disabled' : ''}
+                title="${index === filtered.length - 1 ? 'Sudah berada di urutan paling bawah' : 'Turunkan urutan antrian peserta'}"
+                class="w-9 h-9 rounded-2xl bg-slate-800 hover:bg-slate-700 disabled:opacity-25 disabled:cursor-not-allowed text-slate-300 flex items-center justify-center transition text-xs border border-slate-700">
+                <i class="fa-solid fa-arrow-down"></i>
+              </button>
+
+              <!-- Delete -->
+              <button onclick="deleteItem('${item.id}')"
+                class="w-9 h-9 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 flex items-center justify-center transition text-xs">
+                <i class="fa-regular fa-trash-can"></i>
+              </button>
+
+            </div>
+
+          </div>
+        `;
+      }).join('');
+    }
+  </script>
+</body>
+</html>
